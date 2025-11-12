@@ -1,5 +1,5 @@
 import React from 'react';
-import '../styles/components.css';
+import '../Styles/Components.css';
 
 function CategorySelect({ onStartQuiz }) {
     const categories = ['Science', 'History', 'Technology', 'Sports', 'Movies'];

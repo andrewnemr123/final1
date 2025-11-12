@@ -1,8 +1,15 @@
 import React from 'react';
-import '../styles/components.css';
+import '../Styles/Components.css';
 
-function ResultsScreen({ score, totalQuestions, category, onPlayAgain }) {
+function ResultsScreen({ score, totalQuestions, category, userAnswers, onPlayAgain }) {
     const percentage = Math.round((score / totalQuestions) * 100);
+
+    const getGrade = () => {
+        if (percentage >= 90) return 'Excellent! 🌟';
+        if (percentage >= 70) return 'Great Job! 👏';
+        if (percentage >= 50) return 'Good Effort! 👍';
+        return 'Keep Practicing! 💪';
+    };
 
     return (
         <div className="results-container">
@@ -11,6 +18,19 @@ function ResultsScreen({ score, totalQuestions, category, onPlayAgain }) {
                 <h2>Category: {category}</h2>
                 <h3>Your Score: {score}/{totalQuestions}</h3>
                 <h3>Percentage: {percentage}%</h3>
+                <h2>{getGrade()}</h2>
+
+                <div className="answer-review">
+                    <h4>Review Your Answers:</h4>
+                    {userAnswers.map((answer, index) => (
+                        <div key={index} className={`answer-item ${answer.isCorrect ? 'correct' : 'incorrect'}`}>
+                            <p><strong>Q{index + 1}:</strong> {answer.question}</p>
+                            <p>Your Answer: {answer.userAnswer || 'No answer'}</p>
+                            {!answer.isCorrect && <p>Correct Answer: {answer.correctAnswer}</p>}
+                        </div>
+                    ))}
+                </div>
+
                 <button className="play-again-btn" onClick={onPlayAgain}>
                     Play Again
                 </button>

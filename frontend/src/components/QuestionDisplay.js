@@ -1,58 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import Timer from 'Timer';
-import '../styles/components.css';
-import axios from 'axios';
+import Timer from './Timer';
+import '../Styles/Components.css';
 
-function QuestionDisplay({ sessionId, questionIndex, score, onAnswerSubmit, apiUrl }) {
-    const [question, setQuestion] = useState(null);
-    const [loading, setLoading] = useState(true);
+function QuestionDisplay({ question, questionIndex, totalQuestions, score, onAnswerSubmit }) {
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [timeLeft, setTimeLeft] = useState(30);
     const [answered, setAnswered] = useState(false);
 
+    // Reset state when question changes
     useEffect(() => {
-        fetchQuestion();
+        setTimeLeft(30);
+        setAnswered(false);
+        setSelectedAnswer(null);
     }, [questionIndex]);
 
-    const fetchQuestion = async () => {
-        try {
-            setLoading(true);
-            setTimeLeft(30);
-            setAnswered(false);
-            setSelectedAnswer(null);
-
-            const response = await axios.get(`${apiUrl}/api/quiz/question`, {
-                params: { session_id: sessionId, index: questionIndex }
-            });
-
-            setQuestion(response.data);
-        } catch (error) {
-            console.error('Error fetching question:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
+    // Auto-submit when time runs out
     useEffect(() => {
         if (timeLeft === 0 && !answered) {
-            handleSubmit(null); // Auto-submit with no answer
+            handleSubmit(null);
         }
-    }, [timeLeft]);
+    }, [timeLeft, answered]);
 
     const handleSubmit = (answer) => {
         setAnswered(true);
-        onAnswerSubmit(answer);
+        setTimeout(() => {
+            onAnswerSubmit(answer);
+        }, 1000); // Show feedback for 1 second before moving to next
     };
 
-    if (loading) return <div className="loading">Loading question...</div>;
-    if (!question) return <div className="error">Failed to load question</div>;
+    if (!question) return <div className="loading">Loading question...</div>;
 
     return (
         <div className="question-container">
             <div className="score-bar">
                 <h3>Score: {score}</h3>
-                <h3>Question {questionIndex + 1}/10</h3>
+                <h3>Question {questionIndex + 1}/{totalQuestions}</h3>
                 <Timer timeLeft={timeLeft} setTimeLeft={setTimeLeft} />
             </div>
 
@@ -73,9 +55,9 @@ function QuestionDisplay({ sessionId, questionIndex, score, onAnswerSubmit, apiU
                 <button
                     className="submit-btn"
                     onClick={() => handleSubmit(selectedAnswer)}
-                    disabled={answered}
+                    disabled={answered || !selectedAnswer}
                 >
-                    {answered ? 'Loading next question...' : 'Submit Answer'}
+                    {answered ? 'Next Question...' : 'Submit Answer'}
                 </button>
             </div>
         </div>
