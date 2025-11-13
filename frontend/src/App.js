@@ -5,6 +5,8 @@ import ResultsScreen from './components/ResultScreen';
 import { mockQuestions } from './mockData';
 import './App.css';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 function App() {
   const [gameState, setGameState] = useState('menu'); // 'menu', 'playing', 'results'
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -13,8 +15,30 @@ function App() {
   const [score, setScore] = useState(0);
   const [userAnswers, setUserAnswers] = useState([]);
 
-  // Start a new quiz session with mock data
-  const startQuiz = (category) => {
+  // Start a new quiz session - try API first, fallback to mock data
+  const startQuiz = async (category) => {
+    try {
+      // Try to fetch from API
+      const response = await fetch(`${API_URL}/api/questions/${category}`);
+      
+      if (response.ok) {
+        const apiQuestions = await response.json();
+        
+        if (apiQuestions && apiQuestions.length > 0) {
+          setQuestions(apiQuestions);
+          setSelectedCategory(category);
+          setGameState('playing');
+          setScore(0);
+          setCurrentQuestionIndex(0);
+          setUserAnswers([]);
+          return;
+        }
+      }
+    } catch (error) {
+      console.warn('API not available, falling back to mock data:', error);
+    }
+
+    // Fallback to mock data
     const categoryQuestions = mockQuestions[category];
 
     if (!categoryQuestions) {
