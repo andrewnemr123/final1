@@ -1,57 +1,54 @@
-import React, { useState } from 'react';
-import CategorySelect from './components/CategorySelect';
-import QuestionDisplay from './components/QuestionDisplay';
-import ResultsScreen from './components/ResultScreen';
-import { mockQuestions } from './mockData';
-import './App.css';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import React, { useState } from "react";
+import CategorySelect from "./components/CategorySelect";
+import QuestionDisplay from "./components/QuestionDisplay";
+import ResultsScreen from "./components/ResultScreen";
+import "./App.css";
 
 function App() {
-  const [gameState, setGameState] = useState('menu'); // 'menu', 'playing', 'results'
+  const [gameState, setGameState] = useState("menu");
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [userAnswers, setUserAnswers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [name, setName] = useState("");
 
-  // Start a new quiz session - try API first, fallback to mock data
+  // Fetch questions from backend API
   const startQuiz = async (category) => {
+    setLoading(true);
+    setError(null);
+
     try {
-      // Try to fetch from API
-      const response = await fetch(`${API_URL}/api/questions/${category}`);
-      
-      if (response.ok) {
-        const apiQuestions = await response.json();
-        
-        if (apiQuestions && apiQuestions.length > 0) {
-          setQuestions(apiQuestions);
-          setSelectedCategory(category);
-          setGameState('playing');
-          setScore(0);
-          setCurrentQuestionIndex(0);
-          setUserAnswers([]);
-          return;
-        }
+      // Use port 5001 to match your docker-compose setup
+      const response = await fetch(
+        `http://localhost:5001/api/questions/${category}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    } catch (error) {
-      console.warn('API not available, falling back to mock data:', error);
+
+      const data = await response.json();
+
+      if (data.questions && data.questions.length > 0) {
+        setQuestions(data.questions);
+        setSelectedCategory(category);
+        setGameState("playing");
+        setScore(0);
+        setCurrentQuestionIndex(0);
+        setUserAnswers([]);
+      } else {
+        throw new Error("No questions received from API");
+      }
+    } catch (err) {
+      console.error("Error fetching questions:", err);
+      setError(`Failed to load questions: ${err.message}`);
+      alert(`Failed to load questions: ${err.message}`);
+    } finally {
+      setLoading(false);
     }
-
-    // Fallback to mock data
-    const categoryQuestions = mockQuestions[category];
-
-    if (!categoryQuestions) {
-      alert(`No questions available for ${category}`);
-      return;
-    }
-
-    setQuestions(categoryQuestions);
-    setSelectedCategory(category);
-    setGameState('playing');
-    setScore(0);
-    setCurrentQuestionIndex(0);
-    setUserAnswers([]);
   };
 
   // Handle answer submission
@@ -63,16 +60,19 @@ function App() {
       setScore(score + 1);
     }
 
-    setUserAnswers([...userAnswers, {
-      question: currentQuestion.question,
-      userAnswer: answer,
-      correctAnswer: currentQuestion.correct_answer,
-      isCorrect: isCorrect
-    }]);
+    setUserAnswers([
+      ...userAnswers,
+      {
+        question: currentQuestion.question,
+        userAnswer: answer,
+        correctAnswer: currentQuestion.correct_answer,
+        isCorrect: isCorrect,
+      },
+    ]);
 
     // Check if quiz is complete
     if (currentQuestionIndex + 1 >= questions.length) {
-      setGameState('results');
+      setGameState("results");
     } else {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
@@ -80,35 +80,55 @@ function App() {
 
   // Reset to menu
   const resetGame = () => {
-    setGameState('menu');
+    setGameState("menu");
     setSelectedCategory(null);
     setQuestions([]);
     setScore(0);
     setCurrentQuestionIndex(0);
     setUserAnswers([]);
+    setError(null);
   };
 
   return (
     <div className="App">
-      {gameState === 'menu' && <CategorySelect onStartQuiz={startQuiz} />}
-      {gameState === 'playing' && (
-        <QuestionDisplay
-          question={questions[currentQuestionIndex]}
-          questionIndex={currentQuestionIndex}
-          totalQuestions={questions.length}
-          score={score}
-          onAnswerSubmit={handleAnswerSubmit}
-        />
-      )}
-      {gameState === 'results' && (
-        <ResultsScreen
-          score={score}
-          totalQuestions={questions.length}
-          category={selectedCategory}
-          userAnswers={userAnswers}
-          onPlayAgain={resetGame}
-        />
-      )}
+      <header className="App-header">
+        <h1>🧠 Trivia Quiz</h1>
+      </header>
+
+      <main>
+        {gameState === "menu" && (
+          <>
+            <CategorySelect
+              onStartQuiz={startQuiz}
+              name={name}
+              setName={setName}
+            />
+            {loading && <div className="loading">Loading questions...</div>}
+            {error && <div className="error">{error}</div>}
+          </>
+        )}
+
+        {gameState === "playing" && questions.length > 0 && (
+          <QuestionDisplay
+            question={questions[currentQuestionIndex]}
+            questionIndex={currentQuestionIndex}
+            totalQuestions={questions.length}
+            score={score}
+            onAnswerSubmit={handleAnswerSubmit}
+          />
+        )}
+
+        {gameState === "results" && (
+          <ResultsScreen
+            score={score}
+            totalQuestions={questions.length}
+            category={selectedCategory}
+            userAnswers={userAnswers}
+            name={name}
+            onPlayAgain={resetGame}
+          />
+        )}
+      </main>
     </div>
   );
 }

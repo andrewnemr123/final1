@@ -1,0 +1,39 @@
+trigger: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  FRONTEND_URL: 'https://trivia-frontend-app-dteabjgfatg8aefx.eastus2-01.azurewebsites.net'
+
+steps:
+- script: |
+    echo "🔍 Testing Frontend App..."
+    
+    # Get HTTP status
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" $(FRONTEND_URL))
+    
+    echo "HTTP Status Code: $HTTP_CODE"
+    
+    # Check status
+    if [ $HTTP_CODE -eq 200 ]; then
+      echo "✅ SUCCESS! Frontend is running properly"
+      exit 0
+    else
+      echo "❌ FAILED! Frontend returned HTTP $HTTP_CODE"
+      exit 1
+    fi
+  displayName: 'Check Frontend Health'
+
+- script: |
+    echo "📊 Getting response time..."
+    
+    TIME=$(curl -o /dev/null -s -w 'Response Time: %{time_total}s\n' $(FRONTEND_URL))
+    echo $TIME
+  displayName: 'Measure Performance'
+
+- script: |
+    echo "🔎 Checking page content..."
+    
+    curl -s $(FRONTEND_URL) | grep -q "root" && echo "✅ React app loaded" || echo "❌ React app not found"
+  displayName: 'Verify Content'

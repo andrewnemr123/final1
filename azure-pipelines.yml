@@ -1,0 +1,41 @@
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  imageRepositoryBackend: "trivia-backend"
+  imageRepositoryFrontend: "trivia-frontend"
+  tag: "latest"
+  ACR_LOGIN: crazyjeapordyquiR
+  ACR_SERVER: crazyjeapordyquiz.azurecr.io
+
+steps:
+- task: DockerInstaller@0
+  displayName: Install Docker
+
+# Login to ACR manually
+- script: |
+    echo "$(ACR_PASSWORD)" | docker login $(ACR_SERVER) -u $(ACR_LOGIN) --password-stdin
+  displayName: Login to ACR
+
+# Build backend
+- script: |
+    docker build -t $(ACR_SERVER)/$(imageRepositoryBackend):$(tag) backend/
+  displayName: Build Backend Image
+
+# Build frontend
+- script: |
+    docker build -t $(ACR_SERVER)/$(imageRepositoryFrontend):$(tag) frontend/
+  displayName: Build Frontend Image
+
+# Push backend
+- script: |
+    docker push $(ACR_SERVER)/$(imageRepositoryBackend):$(tag)
+  displayName: Push Backend Image
+
+# Push frontend
+- script: |
+    docker push $(ACR_SERVER)/$(imageRepositoryFrontend):$(tag)
+  displayName: Push Frontend Image
